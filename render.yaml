@@ -1,0 +1,14 @@
+# Render Blueprint — 대시보드에서 New → Blueprint 로 이 저장소를 고르면 아래 설정대로 서비스가 만들어진다.
+# (New → Web Service 로 폼을 직접 채워도 결과는 같다. 워크북 ⑤-③ 표와 동일한 값이다.)
+services:
+  - type: web
+    name: ledger-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        sync: false   # 비밀값 — 대시보드에서 직접 입력(.env 의 = 뒤 값 그대로)
+      - key: PYTHON_VERSION
+        value: 3.13.4
