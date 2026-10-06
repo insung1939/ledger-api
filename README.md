@@ -76,8 +76,8 @@ uvicorn main:app --reload   # http://127.0.0.1:8000/docs
 
 _(Supabase Table Editor의 `transactions` 캡처와 Render `/docs`의 `GET /accounts` 캡처를 여기에 붙인다)_
 
-![supabase-transactions](docs/supabase_transactions.png)
-![render-docs](docs/render_accounts.png)
+![supabase-transactions](docs/supabase_transactions.jpg)
+![render-docs](docs/render_accounts.jpg)
 
 ### ② 핵심 개념 되새김
 
