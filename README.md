@@ -21,6 +21,7 @@
 | `seed.py` | 샘플 데이터(카테고리·계좌·거래) 투입 — 두 번 실행해도 안전 |
 | `render.yaml` | Render Blueprint (Build/Start 명령·환경변수 선언) |
 | `.env.example` | 연결 문자열 형식 견본 (`.env`는 Git 제외) |
+| `alembic/`, `alembic.ini` | ⑥ 확장 — Alembic 마이그레이션(baseline 1건). `env.py`가 `.env`의 DATABASE_URL과 `Base.metadata`를 읽는다 |
 
 ### 데이터베이스 스키마 (models.py)
 
@@ -88,6 +89,7 @@ _(Supabase Table Editor의 `transactions` 캡처와 Render `/docs`의 `GET /acco
 
 - **단계 1 (SQLite)** — `ledger-sql/`의 네 파일(step1_create · step2_data · step3_join_agg · step4_transfer)을 실행해 CREATE·INSERT·JOIN·GROUP BY·트랜잭션을 확인했다. GROUP BY 결과는 교통 -1,500 / 식비 -12,000 두 줄. `step4`를 여러 번 실행했더니 잔액이 -200,000원까지 내려가 있었다 → 이체 스크립트는 실행할 때마다 10만 원씩 옮기므로 당연한 결과였고, `ledger.db`를 지우고 step1부터 다시 돌려 400,000 / 1,100,000원으로 맞췄다. `raise ValueError("일부러 실패")`를 출금과 입금 사이에 넣으면 출금 UPDATE가 이미 실행됐는데도 `rollback()`이 잔액을 원상복구하는 것을 봤다(원자성).
 - **단계 3·4 (FastAPI → DB)** — 처음엔 `.env`를 `sqlite:///./ledger.db`로 두고(③-⑦ 우회) 8개 경로를 모두 호출해 201/404/422/400 응답을 확인한 뒤, Supabase 연결 문자열로 바꿔 같은 코드를 다시 실행했다. 코드는 한 줄도 바꾸지 않았다.
+- **단계 6 (확장)** — `alembic init` 후 `env.py`에 `target_metadata = Base.metadata`와 `.env` 주입을 넣고 `revision --autogenerate -m baseline`을 만들었다. `create_all`로 이미 테이블이 있어 생성된 스크립트는 `upgrade()`·`downgrade()`가 `pass`뿐이었고, `op.drop_table`이 없는 것을 확인한 뒤 `upgrade head`로 `alembic_version`에 기준점을 찍었다. `create_all`은 Render 첫 기동 시 안전망으로 남겨 두었다(없는 테이블만 만들므로 Alembic과 충돌하지 않는다).
 - **단계 7 (확장)** — `/transfers`에서 commit 직전에 예외를 일부러 일으켜도 `GET /accounts` 잔액이 그대로였다(rollback). `/accounts-with-tx`는 계좌 3개·거래 6건을 불러오는 데 SELECT가 정확히 2번만 나갔다(`selectinload`). 계좌 수만큼 SELECT가 나가는 N+1과 비교해 봤다.
 - **AI 활용과 검증** — Claude Code에게 워크북(교재 04)을 그대로 따라 파일을 만들게 하고, 워크북의 각 「확인」 명령(`print(database.engine)`, `Base.metadata.tables`, `model_fields.keys()` 등)과 `curl`·`TestClient` 호출 결과를 워크북에 적힌 기대값과 하나씩 대조해 검증했다. SELECT 횟수는 SQLAlchemy 이벤트 리스너로 세어 확인했다.
 - **아직 안 풀린 것 / 메모** — _(Supabase·Render 연결 중 막힌 점이 있으면 여기에 적는다)_
