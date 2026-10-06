@@ -1,7 +1,7 @@
 # ledger-api — 가계부 API (FastAPI + SQLAlchemy + Supabase PostgreSQL)
 
 - **GitHub**: https://github.com/insung1939/ledger-api
-- **Render**: _(배포 후 https://ledger-api-….onrender.com 주소를 여기에 적는다)_ → `/docs`
+- **Render**: https://ledger-api-iqle.onrender.com → [/docs](https://ledger-api-iqle.onrender.com/docs)
 
 > 클라우드컴퓨팅실습 W4 과제. 3주차에 메모리에 담던 가계부 데이터를 관계형 DB(Supabase PostgreSQL)에 저장하고,
 > FastAPI를 GitHub → Render로 배포해 인터넷 주소의 API가 Supabase를 읽고 쓰는 것을 확인한다.
@@ -74,7 +74,7 @@ uvicorn main:app --reload   # http://127.0.0.1:8000/docs
 
 ### ① 결과 확인
 
-_(Supabase Table Editor의 `transactions` 캡처와 Render `/docs`의 `GET /accounts` 캡처를 여기에 붙인다)_
+Supabase Table Editor의 `transactions`(로컬 FastAPI → Supabase)와, Render 배포 주소 `/docs`의 `GET /accounts`(인터넷 주소의 API → 같은 Supabase). Render에서 `POST /accounts`로 만든 「배포테스트」 계좌가 Supabase `accounts`에 바로 나타났고, 로컬 서버의 `GET /accounts`에도 보였다 — 앱은 두 곳(내 PC·Render)에 있지만 DB는 Supabase 하나다.
 
 ![supabase-transactions](docs/supabase_transactions.jpg)
 ![render-docs](docs/render_accounts.jpg)
@@ -92,4 +92,5 @@ _(Supabase Table Editor의 `transactions` 캡처와 Render `/docs`의 `GET /acco
 - **단계 6 (확장)** — `alembic init` 후 `env.py`에 `target_metadata = Base.metadata`와 `.env` 주입을 넣고 `revision --autogenerate -m baseline`을 만들었다. `create_all`로 이미 테이블이 있어 생성된 스크립트는 `upgrade()`·`downgrade()`가 `pass`뿐이었고, `op.drop_table`이 없는 것을 확인한 뒤 `upgrade head`로 `alembic_version`에 기준점을 찍었다. `create_all`은 Render 첫 기동 시 안전망으로 남겨 두었다(없는 테이블만 만들므로 Alembic과 충돌하지 않는다).
 - **단계 7 (확장)** — `/transfers`에서 commit 직전에 예외를 일부러 일으켜도 `GET /accounts` 잔액이 그대로였다(rollback). `/accounts-with-tx`는 계좌 3개·거래 6건을 불러오는 데 SELECT가 정확히 2번만 나갔다(`selectinload`). 계좌 수만큼 SELECT가 나가는 N+1과 비교해 봤다.
 - **AI 활용과 검증** — Claude Code에게 워크북(교재 04)을 그대로 따라 파일을 만들게 하고, 워크북의 각 「확인」 명령(`print(database.engine)`, `Base.metadata.tables`, `model_fields.keys()` 등)과 `curl`·`TestClient` 호출 결과를 워크북에 적힌 기대값과 하나씩 대조해 검증했다. SELECT 횟수는 SQLAlchemy 이벤트 리스너로 세어 확인했다.
-- **아직 안 풀린 것 / 메모** — _(Supabase·Render 연결 중 막힌 점이 있으면 여기에 적는다)_
+- **단계 5 (배포)** — GitHub `insung1939/ledger-api`에 push 후 Render Blueprint(`render.yaml`)로 배포했다. 환경변수 `DATABASE_URL`만 대시보드에서 입력했고 코드는 로컬과 동일하다. 첫 접속은 콜드 스타트로 수십 초 걸렸지만, 3주차와 달리 서비스가 잠들었다 깨어나도 데이터가 남는다 — DB가 앱 밖(Supabase)에 있기 때문이다.
+- **막힌 곳과 메모** — gh CLI가 구버전(2.23)이라 `--accept-visibility-change-consequences` 플래그가 없어 `gh repo edit --visibility public`만으로 공개 전환했다. 비밀번호가 대화에 노출된 적이 있어 과제 제출 후 Supabase에서 재설정하고 `.env`·Render 환경변수를 함께 바꿀 예정이다.
