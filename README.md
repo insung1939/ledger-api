@@ -81,9 +81,9 @@ Supabase Table Editor의 `transactions`(로컬 FastAPI → Supabase)와, Render 
 
 ### ② 핵심 개념 되새김
 
-- **계좌·거래를 두 테이블로 나눈 이유(1:N)** — 계좌 하나에 거래가 여러 건 붙는다. 거래마다 계좌 이름·잔액을 복사해 두면 계좌 이름 하나를 고칠 때 모든 거래 행을 함께 고쳐야 하고, 하나라도 빠지면 같은 계좌가 둘로 갈라진다. 거래는 `account_id`라는 번호만 가리키고(외래키), 이름이 필요할 때 JOIN(또는 `relationship`)으로 붙인다. 외래키 덕에 "존재하지 않는 계좌의 거래"는 DB가 처음부터 거절한다.
-- **SQLAlchemy 모델 클래스와 실제 테이블의 대응** — `class Account(Base)` 하나가 `CREATE TABLE accounts` 하나다. `__tablename__`이 테이블 이름, 클래스 속성 하나가 컬럼 하나이고, 타입 표기가 제약조건이 된다(`Mapped[str]` → NOT NULL, `Mapped[str | None]` → NULL 허용, `ForeignKey(...)` → FK). `Base.metadata.create_all()`이 이 정의를 읽어 없는 테이블을 만들고, 연결 문자열 앞머리(`sqlite` / `postgresql+psycopg`)를 보고 DB별 문법 차이를 알아서 맞춘다.
-- **접속 문자열을 `.env`로 분리하는 이유** — 연결 문자열 한 줄에 DB 관리자 비밀번호가 그대로 들어 있다. 코드에 적으면 GitHub에 올라가 공개되고, 커밋 이력에 영원히 남는다. `.env`에 두고 `.gitignore`로 제외하면 코드는 공개하되 비밀은 내 PC와 Render 환경변수에만 있다. 또 로컬(SQLite)과 운영(Supabase)처럼 환경마다 접속 정보가 달라도 코드는 그대로 두고 이 한 줄만 바꾸면 된다.
+- **계좌·거래를 두 테이블로 나눈 이유(1:N)** — 계좌 하나에 거래가 수십 건씩 쌓이는데, 거래 행마다 계좌 이름을 같이 적어 두면 계좌 이름을 하나 고칠 때 거래를 전부 찾아 고쳐야 한다. 그래서 거래에는 `account_id` 번호만 넣고, 이름이 필요하면 그때 JOIN으로 붙인다. 단계 1에서 `PRAGMA foreign_keys = ON`을 켜야 했던 것도 결국 "없는 계좌를 가리키는 거래"를 DB가 막게 하려는 것이었고, Supabase(PostgreSQL)는 이걸 기본으로 검사한다.
+- **SQLAlchemy 모델 클래스와 실제 테이블의 대응** — 단계 1에서 손으로 쓴 `CREATE TABLE accounts (...)`를 단계 3에서는 `class Account(Base)`가 대신한다. 클래스 이름이 아니라 `__tablename__`이 테이블 이름이고, 속성 한 줄이 컬럼 한 개다. `Mapped[str]`은 NOT NULL, `Mapped[str | None]`은 NULL 허용이 되는 걸 보고 "타입 힌트가 곧 제약조건"이라는 게 이해됐다. `create_all()`이 이 클래스를 읽어 Supabase에 테이블을 만들었고, Table Editor에 세 테이블이 그대로 나타났다.
+- **접속 문자열을 `.env`로 분리하는 이유** — `DATABASE_URL` 한 줄 안에 DB 비밀번호가 그대로 들어 있다. 이걸 `main.py`에 적었다면 GitHub에 올라가는 순간 공개되고, 지워도 커밋 이력에 남는다. `.env`에 두고 `.gitignore`로 빼면 코드는 공개해도 비밀은 내 PC와 Render 환경변수에만 있다. 실제로 로컬은 `.env`, Render는 Environment Variables에서 같은 이름을 읽기 때문에 배포할 때 코드를 한 줄도 안 바꿨다 — 이게 "환경 분리"의 의미였다.
 
 ### ③ 자유 로그
 
